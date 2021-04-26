@@ -1,0 +1,7 @@
+{
+    "rust-analyzer.cargo.target": "thumbv7m-none-eabi",
+    "rust-analyzer.checkOnSave.extraArgs": [
+        // "--release",
+        "--target=thumbv7m-none-eabi"
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "debug with mscpp",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/thumbv7m-none-eabi/release/display",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "${workspaceFolder}/debug-cppdbg.sh",
+            "internalConsoleOptions": "neverOpen",
+            "showDisplayString": true
+        },
+    ]
+}
