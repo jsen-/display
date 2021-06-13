@@ -27,6 +27,32 @@
 				"clear": true
 			},
 			"label": "run"
+		},
+		{
+			"type": "shell",
+			"label": "openocd_start",
+			"command": "${workspaceFolder}/scripts/openocd_start.sh",
+			"presentation": {
+				"echo": true,
+				"reveal": "never",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": false
+			}
+		},
+		{
+			"type": "shell",
+			"label": "openocd_stop",
+			"command": "${workspaceFolder}/scripts/openocd_stop.sh",
+			"presentation": {
+				"echo": true,
+				"reveal": "never",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": false
+			}
 		}
 	]
 }

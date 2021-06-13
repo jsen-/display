@@ -52,16 +52,16 @@ monitor reset halt
 # load
 
 # Set breakpoint at the main() function.
-#break main
+break main
 
 # Run the program and stop at the main() function.
-#continue
+continue
 
 # Remove the breakpoint at the main() function.
 #clear main
 
 # Step into the first line of the main() function. Else gdb will complain about "entry macros" file missing.
-#step
+step
 
 ##########################################################################
 # Optional Commands

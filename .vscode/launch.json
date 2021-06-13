@@ -5,12 +5,32 @@
             "name": "debug with mscpp",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/target/thumbv7m-none-eabi/release/display",
+            "program": "${workspaceFolder}/target/thumbv7m-none-eabi/debug/display",
             "cwd": "${workspaceFolder}",
             "MIMode": "gdb",
             "miDebuggerPath": "${workspaceFolder}/debug-cppdbg.sh",
             "internalConsoleOptions": "neverOpen",
             "showDisplayString": true
         },
+        {
+            "type": "gdb",
+            "request": "attach",
+            "name": "debug with native debug",
+            "target": "extended-remote localhost:3333",
+            "executable": "${workspaceFolder}/target/thumbv7m-none-eabi/debug/display",
+            "valuesFormatting": "prettyPrinters",
+            "cwd": "${workspaceRoot}",
+            "gdbpath": "${workspaceFolder}/scripts/gdb_wrap.sh",
+            "internalConsoleOptions": "openOnSessionStart",
+            "showDevDebugOutput": true,
+            "autorun": [
+                "interrupt",
+                "monitor arm semihosting enable",
+                "monitor reset halt",
+                "break main",
+            ],
+            "preLaunchTask": "openocd_start",
+            "postDebugTask": "openocd_stop",
+        }
     ]
 }
