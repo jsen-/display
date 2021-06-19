@@ -1,17 +1,18 @@
 pub mod font;
+pub mod fullscreen_scroller;
 pub mod vertical_scroller;
 
 use ssd1963::{Bounds, Display};
 
-use self::{font::MonoFont, vertical_scroller::VerticalScroller};
+use self::{font::MonoFont, fullscreen_scroller::FullscreenVerticalScroller, vertical_scroller::Scroller};
 use core::{
     convert::{TryFrom, TryInto},
     ops::RangeBounds,
 };
 
-pub fn text_to_pixels<'a, 'font: 'a, Font: font::MonoFont>(_font: &'font Font, text: &'a str) -> impl Iterator<Item = bool> + 'a {
-    text.chars().flat_map(move |ch| get_bits(_font, ch))
-}
+// pub fn text_to_pixels<'a, 'font: 'a, Font: font::MonoFont>(_font: &'font Font, text: &'a str) -> impl Iterator<Item = bool> + 'a {
+//     text.chars().flat_map(move |ch| get_bits(_font, ch))
+// }
 
 pub fn get_bits<'font, Font: font::MonoFont>(_font: &'font Font, ch: char) -> impl Iterator<Item = bool> {
     let mut ch = u32::from(ch);
@@ -97,14 +98,12 @@ impl<'font, Font: MonoFont> Iterator for CharPixelTransIter<'font, Font> {
     }
 }
 
-fn display_size<Disp: Display>(display: &Disp) -> Bounds {
-    let width = Disp::WIDTH;
-    let height = Disp::HEIGHT;
+fn display_size<Disp: Display>(_display: &Disp) -> Bounds {
     Bounds {
         x_start: 0,
-        x_end: width - 1,
+        x_end: Disp::WIDTH - 1,
         y_start: 0,
-        y_end: height - 1,
+        y_end: Disp::HEIGHT - 1,
     }
 }
 
@@ -120,13 +119,13 @@ pub struct Term<'me, Disp: Display, Font, Scroller> {
     start_with_newline: bool,
 }
 
-impl<'me, Disp, Font, Scroller> Term<'me, Disp, Font, Scroller>
+impl<'me, Disp, Font, Scroll> Term<'me, Disp, Font, Scroll>
 where
     Disp: Display<Color = u16>, // TODO: properly implement Color and remove the Color = u16 constrain
     Font: MonoFont,
-    Scroller: VerticalScroller<Disp>,
+    Scroll: Scroller<Disp>,
 {
-    pub fn new(display: &'me mut Disp, font: &'me Font, scroller: Scroller) -> Self {
+    pub fn new(display: &'me mut Disp, font: &'me Font, scroller: Scroll) -> Self {
         Self {
             font,
             scroller,
@@ -148,10 +147,10 @@ where
         self.bounds = Bounds::new_within(x, y, &display_size(self.display)).unwrap();
         self
     }
-    fn scroll_up(&mut self, by: u16) {
+    fn scroll_up(&mut self, by: u16) -> Result<(), Disp::Error> {
         let by = -i16::try_from(by).unwrap();
         self.scroller
-            .scroll_area(self.display, self.bounds.range_horiz(), self.bounds.range_vert(), 0, by);
+            .scroll_area(self.display, self.bounds.range_horiz(), self.bounds.range_vert(), 0, by)
     }
     pub fn write(&mut self, text: &str) {
         let line_len = (Disp::WIDTH / u16::from(Font::CHAR_WIDTH)).try_into().unwrap();
@@ -167,16 +166,18 @@ where
                         remaininig_area.x_start += self.column_offset;
                         remaininig_area.y_start += self.line_offset;
                         remaininig_area.set_height(u16::from(Font::CHAR_HEIGHT));
-                        self.display.fill_area(
-                            remaininig_area.range_horiz(),
-                            remaininig_area.range_vert(),
-                            &mut core::iter::repeat(self.bgcolor),
-                        );
+                        self.display
+                            .fill_area(
+                                remaininig_area.range_horiz(),
+                                remaininig_area.range_vert(),
+                                &mut core::iter::repeat(self.bgcolor),
+                            )
+                            .ok();
 
                         // is there space for another line after this one?
                         let remaining_height = self.bounds.height() - self.line_offset - u16::from(Font::CHAR_HEIGHT);
                         self.line_offset = if remaining_height < u16::from(Font::CHAR_HEIGHT) {
-                            self.scroll_up(u16::from(Font::CHAR_HEIGHT) - remaining_height);
+                            self.scroll_up(u16::from(Font::CHAR_HEIGHT) - remaining_height).ok();
                             self.bounds.height() - u16::from(Font::CHAR_HEIGHT)
                         } else {
                             self.line_offset + u16::from(Font::CHAR_HEIGHT)
@@ -193,7 +194,7 @@ where
                     abc.y_start += self.line_offset;
                     abc.set_height(u16::from(Font::CHAR_HEIGHT));
                     abc.set_width(u16::from(Font::CHAR_WIDTH));
-                    self.display.fill_area(abc.range_horiz(), abc.range_vert(), &mut bits);
+                    self.display.fill_area(abc.range_horiz(), abc.range_vert(), &mut bits).ok();
                     self.column_offset = end_column_offset - 1;
                 }
             }
@@ -201,11 +202,11 @@ where
     }
 }
 
-impl<'a, Disp, Font, Scroller> core::fmt::Write for Term<'a, Disp, Font, Scroller>
+impl<'a, Disp, Font, Scroll> core::fmt::Write for Term<'a, Disp, Font, Scroll>
 where
     Disp: Display<Color = u16>, // TODO: properly implement Color and remove the Color = u16 constrain
     Font: MonoFont,
-    Scroller: VerticalScroller<Disp>,
+    Scroll: Scroller<Disp>,
 {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         Ok(self.write(s))

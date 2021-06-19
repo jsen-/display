@@ -1,10 +1,9 @@
 #![no_main]
 #![no_std]
-#![allow(warnings)]
 
 mod term;
 
-use core::{convert::TryInto, fmt::write, marker::PhantomData, ops::Range};
+use core::marker::PhantomData;
 
 use cortex_m_rt::entry;
 
@@ -16,10 +15,11 @@ use hal::{
     prelude::*,
 };
 use panic_semihosting as _;
-use ssd1963::{display::CopyArea, stm32f1xx::RwPortB, GpioReadWrite16BitInterface, Lcd800x480, Screen};
+use ssd1963::{GpioReadWrite16BitInterface, Screen};
+use stm32f1xx_gpio16bit::RwPortB;
 use stm32f1xx_hal as hal;
 
-use crate::term::{font::ThisFont, text_to_pixels, vertical_scroller::CopyScroller, Term};
+use crate::term::{font::ThisFont, vertical_scroller::CopyScroller, Term};
 
 #[entry]
 fn main() -> ! {
@@ -81,7 +81,6 @@ fn main() -> ! {
     // rd.set_high().unwrap();
     // let mut reset = gpioa.pa0.into_push_pull_output(&mut gpioa.crl); // LCD_RESET
     // reset.set_high().unwrap();
-    let mut disp = ssd1963::Ssd1963::new(ssd1963::Lcd800x480, interface, Delay::new(cp.SYST, clocks)).unwrap();
 
     struct Gradient<Lcd: Screen> {
         line: u16,
@@ -121,16 +120,15 @@ fn main() -> ! {
             Some(red | green | blue)
         }
     }
-    use ssd1963::Display;
-    let mut buffer = [0u16; 8000];
+    let mut disp = ssd1963::Ssd1963::new(ssd1963::Lcd800x480, interface, Delay::new(cp.SYST, clocks)).unwrap();
+    disp.fill_area_color(.., .., 0).unwrap();
+    // disp.fill_area(.., .., &mut Gradient::<Lcd800x480>::new()).unwrap();
 
-    // let mut it = Gradient::<Lcd800x480>::new();
+    let mut buffer = [0u16; 9000];
+    let scroller = CopyScroller::new(&mut buffer);
+    // scroller.scroll_area(&mut disp, 0..100, 100..479, 100, -100).unwrap();
 
-    // disp.fill_area(0..disp.width(), 0..disp.height(), &mut it).unwrap();
-
-    // disp.copy_area(0..100, 100..479, 100, -100, &mut buffer).unwrap();
-    // disp.fill_area_color(0..480, 380..=380, 0b11111100000);
-
+    // disp.fill_area_color(0..480, 380..=380, 0b11111100000).unwrap();
     // let mut x: u16 = 0;
     // let mut y: u16 = 0;
     // let mut speed_x: i16 = 1;
@@ -138,13 +136,12 @@ fn main() -> ! {
     // let width: u16 = 100;
     // let height: u16 = 100;
     // use core::convert::TryFrom;
-    disp.fill_area_color(.., .., 0).unwrap();
+    // disp.fill_area_color(.., .., 0).unwrap();
 
-    let scroller = CopyScroller::new(&mut buffer);
     let mut term = Term::new(&mut disp, &ThisFont, scroller).dimensions(.., 8..);
     use core::fmt::Write;
     for i in 0..100 {
-        writeln!(&mut term, "{:3} Hello, world!", i);
+        writeln!(&mut term, "{:3} Hello, world!", i).unwrap();
     }
 
     // let mut x: u16 = 0;
